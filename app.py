@@ -44,59 +44,161 @@ st.set_page_config(
     layout="wide",
 )
 
+
 st.markdown("""
 <style>
+/* ===== DISASTERMATRIX 4.0 PREMIUM THEME ===== */
+
+:root {
+    --dm-bg: #242423;
+    --dm-card: #333533;
+    --dm-sage: #CFDBD5;
+    --dm-ivory: #E8EDDF;
+    --dm-gold: #F5CB5C;
+}
+
+/* Main background */
 .stApp {
     background: linear-gradient(
         145deg,
-        #07111f 0%,
-        #0b1728 60%,
-        #101d31 100%
+        #242423 0%,
+        #333533 55%,
+        #242423 100%
     );
-    color: #e8f0fb;
+    color: #E8EDDF;
 }
+
+/* Sidebar */
 [data-testid="stSidebar"] {
-    background: #091525;
-    border-right: 1px solid #20334b;
+    background: #242423;
+    border-right: 1px solid #55594f;
 }
+
+/* Main content */
 .block-container {
     padding-top: 1.3rem;
     max-width: 1600px;
 }
-h1, h2, h3 {
-    color: #f2f7ff !important;
+
+/* Headings */
+h1, h2, h3, h4 {
+    color: #F5CB5C !important;
 }
+
+/* Normal text */
+p, label, li, span {
+    color: #E8EDDF;
+}
+
+/* Metrics */
 div[data-testid="stMetric"] {
-    background: #101f33;
-    border: 1px solid #263d59;
+    background: #333533;
+    border: 1px solid #CFDBD5;
     padding: 15px;
     border-radius: 13px;
 }
+
 div[data-testid="stMetricLabel"] {
-    color: #9db3ce;
+    color: #CFDBD5 !important;
 }
+
 div[data-testid="stMetricValue"] {
-    color: #f5f9ff;
+    color: #F5CB5C !important;
 }
+
+/* Custom cards */
 .dm-card {
-    background: #101f33;
-    border: 1px solid #263d59;
+    background: #333533;
+    border: 1px solid #CFDBD5;
     border-radius: 14px;
     padding: 16px;
     margin-bottom: 10px;
 }
+
 .dm-muted {
-    color: #9db3ce;
+    color: #CFDBD5;
     font-size: 0.86rem;
 }
-.small-pill {
-    display: inline-block;
-    padding: 4px 9px;
-    border-radius: 20px;
-    background: #183653;
-    color: #9fd0ff;
-    font-size: 12px;
+
+/* Buttons */
+.stButton > button {
+    background: #F5CB5C;
+    color: #242423 !important;
+    border: 1px solid #F5CB5C;
+    border-radius: 9px;
+    font-weight: 700;
+    transition: all 0.25s ease;
 }
+
+.stButton > button:hover {
+    background: #E8EDDF;
+    color: #242423 !important;
+    border-color: #E8EDDF;
+    transform: translateY(-2px);
+}
+
+/* Input fields */
+.stTextInput input,
+.stTextArea textarea,
+.stNumberInput input,
+.stSelectbox div[data-baseweb="select"] {
+    background: #333533;
+    color: #E8EDDF;
+    border-color: #CFDBD5;
+}
+
+/* Tabs */
+.stTabs [data-baseweb="tab"] {
+    color: #E8EDDF;
+}
+
+.stTabs [aria-selected="true"] {
+    color: #F5CB5C !important;
+    border-bottom-color: #F5CB5C !important;
+}
+
+/* Dividers */
+hr {
+    border-color: #55594f;
+}
+
+/* Links */
+a {
+    color: #F5CB5C !important;
+}
+
+/* Expander */
+.streamlit-expanderHeader {
+    background: #333533;
+    color: #F5CB5C !important;
+    border-radius: 9px;
+}
+
+/* Dataframes */
+[data-testid="stDataFrame"] {
+    border: 1px solid #CFDBD5;
+    border-radius: 10px;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #CFDBD5;
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: #242423;
+}
+
+/* Smooth transitions */
+* {
+    transition: background-color 0.2s ease;
+}
+
 </style>
 """, unsafe_allow_html=True)
 
