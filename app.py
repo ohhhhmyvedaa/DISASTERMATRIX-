@@ -14,7 +14,7 @@ from core.resource_allocator import allocate_resources
 from core.simulation_engine import simulate
 from core.serial_handler import SerialReader, available_ports
 from core.report_generator import make_pdf
-from core.weather_client import fetch_weather
+from core.weather_client import fetch_weather_bundle
 from core.city_intelligence import load_hazard_sources, load_chennai_locations, city_summary, CITY_COORDINATES
 from ai.chatbot import respond
 
@@ -131,35 +131,165 @@ if page=="Command Centre":
         st.success("Reading saved to local SQLite database.")
 
 elif page=="City Intelligence":
-    st.subheader("Real-world city climate reference")
-    st.warning("Historical published reference data. These are not live rainfall gauges, current flood levels or live warnings.")
-    subset=city_df[city_df.city.isin(["Chennai","Puducherry","Tiruchirappalli"])]
-    for cty in ["Chennai","Puducherry","Tiruchirappalli"]:
-        rows=subset[subset.city==cty]
-        with st.expander(cty,expanded=(cty==city)):
-            for _,r in rows.iterrows():
-                st.metric(f"{r['year']} · {r['period_or_context']}",f"{r['rainfall_mm']} mm")
-                st.caption(f"{r['geography']} | {r['source']} | {r['data_type']}")
-                st.markdown(f"[Open source document]({r['source_url']})")
-    st.markdown("### Compare selected historical reference values")
-    latest=subset[subset.year.astype(str).isin(["2021","2022","2023"])]
-    st.dataframe(subset[["city","year","rainfall_mm","period_or_context","geography","source"]],use_container_width=True,hide_index=True)
-    st.markdown("### Optional current weather context")
-    st.caption("Open-Meteo API context is model/API-derived and is not a government rain gauge observation.")
-    if st.button(f"Fetch current weather context for {city}"):
-        try:
-            wx=fetch_weather(city)
-            cols=st.columns(4)
-            cols[0].metric("Temperature",f"{wx.get('temperature_2m','—')} °C")
-            cols[1].metric("Humidity",f"{wx.get('relative_humidity_2m','—')} %")
-            cols[2].metric("Precipitation",f"{wx.get('precipitation','—')} mm")
-            cols[3].metric("Wind speed",f"{wx.get('wind_speed_10m','—')} km/h")
-            st.caption(f"API timestamp: {wx.get('time','not supplied')} · Open-Meteo")
-        except Exception as e: st.error(f"Weather API unavailable: {e}")
-    st.markdown("### Interpretation")
-    st.write("The reporting periods and geographic definitions differ. Use each value with its source and period; do not infer that one city is always safer or wetter than another.")
+    st.subheader("🌐 Three-City Climate Intelligence")
+    st.caption("Chennai • Puducherry • Tiruchirappalli")
 
-elif page=="City Hazard Atlas":
+    st.warning(
+        "Open-Meteo readings are model/API-derived context, "
+        "not official rain-gauge observations or flood warnings."
+    )
+
+    cities = ["Chennai", "Puducherry", "Tiruchirappalli"]
+
+    if st.button("🔄 Refresh all city weather", type="primary"):
+        results = {}
+        progress = st.progress(0)
+
+        for i, cty in enumerate(cities):
+            try:
+                results[cty] = fetch_weather_bundle(cty)
+            except Exception as exc:
+                results[cty] = {"error": str(exc)}
+            progress.progress((i + 1) / len(cities))
+
+        st.session_state["city_weather_results"] = results
+        st.session_state["city_weather_time"] = datetime.now().strftime(
+            "%d %b %Y, %I:%M:%S %p"
+        )
+
+    results = st.session_state.get("city_weather_results", {})
+
+    if results:
+        st.markdown("### Live weather comparison")
+
+        cols = st.columns(3)
+
+        for col, cty in zip(cols, cities):
+            with col:
+                result = results.get(cty, {})
+
+                st.markdown(f"#### {cty}")
+
+                if "error" in result:
+                    st.error(result["error"])
+                    continue
+
+                current = result["current"]
+
+                st.metric(
+                    "Temperature",
+                    f"{current.get('temperature_2m', '—')} °C"
+                )
+                st.metric(
+                    "Humidity",
+                    f"{current.get('relative_humidity_2m', '—')} %"
+                )
+                st.metric(
+                    "Precipitation",
+                    f"{current.get('precipitation', '—')} mm"
+                )
+                st.metric(
+                    "Wind speed",
+                    f"{current.get('wind_speed_10m', '—')} km/h"
+                )
+
+                st.caption(
+                    f"API time: {current.get('time', 'Not supplied')}"
+                )
+
+        st.caption(
+            "Last dashboard fetch: "
+            + st.session_state.get("city_weather_time", "Unknown")
+        )
+
+        st.divider()
+        st.markdown("### 24-hour rainfall forecast")
+
+        forecast_frames = []
+
+        for cty in cities:
+            result = results.get(cty, {})
+
+            if "error" in result or "hourly" not in result:
+                continue
+
+            hourly = result["hourly"]
+
+            if not hourly.get("time") or not hourly.get("precipitation"):
+                continue
+
+            frame = pd.DataFrame({
+                "Time": hourly["time"],
+                "Rainfall (mm)": hourly["precipitation"],
+                "City": cty
+            })
+
+            forecast_frames.append(frame)
+
+        if forecast_frames:
+            forecast_df = pd.concat(forecast_frames, ignore_index=True)
+
+            fig = px.line(
+                forecast_df,
+                x="Time",
+                y="Rainfall (mm)",
+                color="City",
+                markers=True,
+                title="Hourly precipitation forecast — next 24 hours"
+            )
+
+            fig.update_layout(
+                template="plotly_dark",
+                height=430,
+                paper_bgcolor="#0b1728",
+                plot_bgcolor="#101f33"
+            )
+
+            st.plotly_chart(fig, use_container_width=True)
+
+            st.markdown("### Forecast data table")
+
+            st.dataframe(
+                forecast_df,
+                use_container_width=True,
+                hide_index=True
+            )
+        else:
+            st.info("Hourly forecast data is not available.")
+
+    else:
+        st.info("Press Refresh all city weather to load the three-city dashboard.")
+
+    st.divider()
+    st.markdown("### Historical rainfall references")
+
+    subset = city_df[
+        city_df.city.isin(cities)
+    ]
+
+    st.dataframe(
+        subset[
+            [
+                "city",
+                "year",
+                "rainfall_mm",
+                "period_or_context",
+                "geography",
+                "source"
+            ]
+        ],
+        use_container_width=True,
+        hide_index=True
+    )
+
+    st.markdown("### Scientific interpretation")
+
+    st.write(
+        "Compare current model-derived weather context with historical "
+        "rainfall references carefully. Different reporting periods and "
+        "geographic definitions may apply. Forecast precipitation is not "
+        "a measurement of future rainfall."
+    )
     st.subheader("Regional hazard atlas · official planning references")
     st.warning("This atlas combines official historical/planning documents with city-centre locator coordinates. It does not display live flood boundaries, surveyed ward polygons or real-time inundation.")
     atlas = pd.DataFrame([{"City": name, "Latitude": coords["lat"], "Longitude": coords["lon"], "Marker meaning": coords["label"]} for name, coords in CITY_COORDINATES.items()])
